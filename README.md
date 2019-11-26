@@ -3,9 +3,12 @@
 ## Introduction
 The goal of the Intelligent Beehive Project is to research, invent and implement possible ways to gather and analyse Data from a BeeHive using state of the art technologies like Artificial Intelligence and Computer Vision. This is done by splitting the project into 5 separte Components. For each Component one researched is responsible.
 
+## Our mission
+
+
 ## Possible outcomes for this project are:
 * Using the Data to create a map of the biodiversity of a certain area so that for example city councils can plant more plants in a certain area. 
-* Using the Data to make a automated hive monitoring system which can notify the bee keeper if the health of the hive is going down. 
+* Using the Data to make a automated hive monitoring system which can notify the bee owner when the hive might be in danger.
 
 ## Components
 * Waggle Dance Detection
@@ -22,6 +25,7 @@ Our team that is currently working on this project are:
 * Sieuwe Elferink (bee health detection)
 * Dirk Heijen (bee audio analysis)
 * Dion Trilbeek (Sensor data)
+* Hugo  (Pollen Analysis)
 
 ## Used Hardware
 For this project we've used a large amount of hardware components (besides the beehive)
