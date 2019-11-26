@@ -1,9 +1,9 @@
 # The IntelligentBeehive Project
 
 ## Introduction
-The goal of the Intelligent Beehive Project is to research, invent and implement possible ways to gather and analyse Data from a BeeHive using state of the art technologies like Artificial Intelligence and Computer Vision. This is done by splitting the project into 5 separte Components. For each Component one researched is responsible.
+The goal of the Intelligent Beehive Project is to research, invent and implement possible ways to gather and analyse Data from a BeeHive using state of the art technologies like Artificial Intelligence and Computer Vision.
+The project is split into several different components
 
-## Our mission
 
 
 ## Possible outcomes for this project are:
