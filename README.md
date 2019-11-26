@@ -16,3 +16,13 @@ The goal of the Intelligent Beehive Project is to research, invent and implement
 
 ## Institute's
 Fontys 
+## Our team
+Our team that is currently working on this project are:
+* Luuk Ebenau (waggledance detection)
+* Sieuwe Elferink (bee health detection)
+* Dirk Heijen (bee audio analysis)
+* Dion Trilbeek (Sensor data)
+
+## Used Hardware
+For this project we've used a large amount of hardware components (besides the beehive)
+These are the hardware components that we use:
