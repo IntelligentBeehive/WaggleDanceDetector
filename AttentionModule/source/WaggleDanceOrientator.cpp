@@ -2,7 +2,7 @@
 #include "WaggleDanceOrientator.h"
 
 #include "cvblob.h"
-
+#include "WddLib.h"
 namespace wdd
 {
 
@@ -40,20 +40,15 @@ namespace wdd
 		// TODO externalize single init of folder structure
 		if(WDO_VERBOSE)
 		{
-			// link to help functionin main.cpp
-			extern bool dirExists(const char * dirPath);
-			// link full path from main.cpp
-			extern char _FULL_PATH_EXE[MAX_PATH];
-
 			char BUFF_PATH[MAX_PATH];
 			char BUFF_UID[MAX_PATH];
 
 			// create path to .\verbose
-			strcpy_s(BUFF_PATH ,MAX_PATH, _FULL_PATH_EXE);
+			strcpy_s(BUFF_PATH ,MAX_PATH, wdd::_FULL_PATH_EXE);
 			strcat_s(BUFF_PATH, MAX_PATH, path_out);
 
 			// check for path_out folder
-			if(!dirExists(BUFF_PATH))
+			if(!wdd::file::dirExists(BUFF_PATH))
 			{
 				if(!CreateDirectory(BUFF_PATH, NULL))
 					printf("ERROR! Couldn't create %s directory.\n", BUFF_PATH);
@@ -64,7 +59,7 @@ namespace wdd
 			strcat_s(BUFF_PATH, MAX_PATH, path_out_root);
 
 			// check for path_out folder
-			if(!dirExists(BUFF_PATH))
+			if(!wdd::file::dirExists(BUFF_PATH))
 			{
 				if(!CreateDirectory(BUFF_PATH, NULL))
 					printf("\nCouldn't create %s directory.\n", BUFF_PATH);
@@ -79,7 +74,7 @@ namespace wdd
 			// append 
 			strcat_s(BUFF_PATH, MAX_PATH, BUFF_UID);
 
-			if(!dirExists(BUFF_PATH))
+			if(!wdd::file::dirExists(BUFF_PATH))
 			{
 				// Create a new dynamic directory
 				if(!CreateDirectory(BUFF_PATH, NULL))
@@ -91,7 +86,7 @@ namespace wdd
 			// create dynamic path 
 			strcat_s(BUFF_PATH, MAX_PATH, blobDirName);
 
-			if(!dirExists(BUFF_PATH))
+			if(!wdd::file::dirExists(BUFF_PATH))
 			{
 				// Create a new dynamic directory
 				if(!CreateDirectory(BUFF_PATH, NULL))

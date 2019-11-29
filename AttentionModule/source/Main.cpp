@@ -5,9 +5,11 @@
 #include "WaggleDanceDetector.h"
 #include "WaggleDanceExport.h"
 #include <tclap/CmdLine.h>
+#include "WddLib.h"
 
 using namespace wdd;
 using namespace std;
+
 
 struct WddFrameAnalyseConfiguration {
 	WddFrameAnalyseConfiguration(cv::Mat frame_input_monochrome, cv::Mat frame_target, VideoFrameBuffer* videoFrameBuffer, unsigned long long frame_counter, bool isVisual) {
@@ -26,12 +28,6 @@ struct WddFrameAnalyseConfiguration {
 };
 
 char* version = "1.2.5";
-// saves loaded, modified camera configs
-std::vector<CamConf> camConfs;
-// saves the next unique camId
-std::size_t nextUniqueCamID = 0;
-char camConfPath[] = "\\cams.config";
-
 
 int Cir_radius = 3;
 cv::Scalar Cir_color_yel = cv::Scalar(255, 255, 0);
@@ -40,199 +36,6 @@ cv::Scalar Cir_color_som = cv::Scalar(0, 0, 255);
 //make the circle filled with value < 0
 int Cir_thickness = -1;
 
-double uvecToDegree(cv::Point2d in)
-{
-	if(_isnan(in.x) | _isnan(in.y))
-		return std::numeric_limits<double>::quiet_NaN();
-
-	// flip y-axis to match unit-circle-axis with image-matrice-axis
-	double theta = atan2(-in.y,in.x);
-	return theta * 180/CV_PI;
-}
-void getNameOfExe(char * out, std::size_t size, char * argv0)
-{
-	std::string argv0_str(argv0);
-	std::string exeName;
-
-	std::size_t found = argv0_str.find_last_of("\\");
-
-	if(found == std::string::npos)
-
-		exeName = argv0_str;
-	else
-		exeName = argv0_str.substr(found+1);
-
-	// check if .exe is at the end
-	found = exeName.find_last_of(".exe");
-	if(found == std::string::npos)
-		exeName += ".exe";
-
-	strcpy_s(out, size, exeName.c_str());
-}
-void getExeFullPath(char * out, std::size_t size)
-{
-	char BUFF[MAX_PATH];
-	extern char _NAME_OF_EXE[MAX_PATH];
-	HMODULE hModule = GetModuleHandle(NULL);
-	if (hModule != NULL)
-	{
-		GetModuleFileName(hModule, BUFF, sizeof(BUFF)/sizeof(char)); 
-		// remove '\WaggleDanceDetector.exe' (or any other name exe has)
-		_tcsncpy_s(out, size, BUFF, strlen(BUFF) - (strlen(_NAME_OF_EXE)+1));
-	}
-	else
-	{
-		std::cerr << "Error! Module handle is NULL - can not retrive exe path!" << std::endl ;
-		exit(-2);
-	}
-}
-
-bool fileExists (const std::string& file_name)
-{
-	struct stat buffer;
-	return (stat (file_name.c_str(), &buffer) == 0);
-}
-bool dirExists(const char * dirPath)
-{
-	int result = PathIsDirectory((LPCTSTR)dirPath);
-
-	if (result & FILE_ATTRIBUTE_DIRECTORY)
-		return true;
-
-	return false;
-}
-
-// format of config file:
-// <camId> <GUID> <Arena.p1> <Arena.p2> <Arena.p3> <Arena.p4>
-void loadCamConfigFileReadLine(std::string line)
-{
-	char * delimiter = " ";
-	std::size_t pos = 0;
-
-	std::size_t tokenNumber = 0;
-
-	std::size_t camId = NULL;
-	char guid_str[64];
-	std::array<cv::Point2i,4> arena;
-
-	//copy & convert to char *
-	char * string1 = _strdup(line.c_str());
-
-	// parse the line
-	char *token = NULL;
-	char *next_token = NULL;
-	token = strtok_s(string1, delimiter, &next_token);
-
-	int arenaPointNumber = 0;
-	while (token != NULL)
-	{
-		int px, py;
-
-		// camId
-		if(tokenNumber == 0)
-		{
-			camId = atoi(token);
-		}
-		// guid
-		else if( tokenNumber == 1)
-		{
-			strcpy_s(guid_str, token);			
-		}
-		else
-		{
-			switch (tokenNumber % 2)
-			{
-				// arena.pi.x
-			case 0:
-				px = atoi(token);
-				break;
-				// arena.pi.y
-			case 1:
-				py = atoi(token);
-				arena[arenaPointNumber++] = cv::Point2i(px,py);
-				break;
-			}
-
-		}
-
-		tokenNumber++;
-		token = strtok_s( NULL, delimiter, &next_token);
-	}
-	free(string1);
-	free(token);
-
-	if(tokenNumber != 10)
-		std::cerr<<"Warning! cams.config file contains corrupted line with total tokenNumber: "<<tokenNumber<<std::endl;
-
-	struct CamConf c;
-	c.camId = camId;
-	strcpy_s(c.guid_str, guid_str);	
-	c.arena = arena;
-	c.configured = true;
-
-	// save loaded CamConf to global vector
-	camConfs.push_back(c);
-
-	// keep track of loaded camIds and alter nextUniqueCamID accordingly
-	if(camId >= nextUniqueCamID)
-		nextUniqueCamID = camId + 1;
-}
-
-void loadCamConfigFile()
-{
-	extern char _FULL_PATH_EXE[MAX_PATH];
-	char BUFF[MAX_PATH];
-	strcpy_s(BUFF ,MAX_PATH, _FULL_PATH_EXE);
-	strcat_s(BUFF, MAX_PATH, camConfPath);
-
-	if(!fileExists(BUFF))
-	{
-		// create empty file
-		std::fstream f;
-		f.open(BUFF, std::ios::out );
-		f << std::flush;
-		f.close();
-	}
-
-	std::string line;
-	std::ifstream camconfigfile;
-	camconfigfile.open(BUFF);
-
-	if(camconfigfile.is_open())
-	{
-		while (getline(camconfigfile,line))
-		{
-			loadCamConfigFileReadLine(line);
-		}
-		camconfigfile.close();
-	}
-	else
-	{
-		std::cerr<<"Error! Can not open cams.config file!"<<std::endl;
-		exit(111);
-	}
-}
-void saveCamConfigFile()
-{	
-	extern char _FULL_PATH_EXE[MAX_PATH];
-	char BUFF[MAX_PATH];
-	strcpy_s(BUFF ,MAX_PATH, _FULL_PATH_EXE);
-	strcat_s(BUFF, MAX_PATH, camConfPath);
-	FILE * camConfFile_ptr;
-	fopen_s (&camConfFile_ptr, BUFF, "w+");
-
-	for(auto it=camConfs.begin(); it!=camConfs.end(); ++it)
-	{
-		if(it->configured)
-		{
-			fprintf_s(camConfFile_ptr,"%d %s ",it->camId,it->guid_str);
-			for(unsigned i=0;i<4;i++)
-				fprintf_s(camConfFile_ptr,"%d %d ", it->arena[i].x, it->arena[i].y);
-			fprintf_s(camConfFile_ptr,"\n");
-		}
-	}
-	fclose(camConfFile_ptr);
-}
 inline void guidToString(GUID g, char * buf){
 	char _buf[64];
 	sprintf_s(_buf, "[%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x]",
@@ -244,16 +47,7 @@ inline void guidToString(GUID g, char * buf){
 	strcpy_s(buf,64,_buf);	
 }
 
-// save executable name
-char _NAME_OF_EXE[MAX_PATH];
-
-// save full path to executable
-char _FULL_PATH_EXE[MAX_PATH];
-
-
 void runTestMode(std::string videoFilename, double aux_dd_min_potential, int aux_wdd_signal_min_cluster_size, bool noGui);
-
-std::string GLOB_WDD_DANCE_OUTPUT_PATH;
 
 void getCommandLineValues(int nargs, char** argv,
 	double* dd_min_potential, int* wdd_signal_min_cluster_size, bool* autoStartUp, std::string* videofile, bool* noGui, std::string* dancePath) {
@@ -303,14 +97,14 @@ void getCommandLineValues(int nargs, char** argv,
 		{
 			char BUFF[MAXCHAR];
 			strcpy_s(BUFF, MAX_PATH, dancePath->c_str());
-			GLOB_WDD_DANCE_OUTPUT_PATH = std::string(BUFF);
+			GLOB_DANCE_OUTPUT_PATH = std::string(BUFF);
 		}
 		else
 		{
 			char BUFF[MAXCHAR];
 			strcpy_s(BUFF, MAX_PATH, _FULL_PATH_EXE);
 			strcat_s(BUFF, MAX_PATH, "\\dance.txt");
-			GLOB_WDD_DANCE_OUTPUT_PATH = std::string(BUFF);
+			GLOB_DANCE_OUTPUT_PATH = std::string(BUFF);
 		}
 	}
 	catch (TCLAP::ArgException &e)
@@ -322,10 +116,10 @@ void getCommandLineValues(int nargs, char** argv,
 int main(int nargs, char** argv)
 {	
 	// get full name of executable
-	getNameOfExe(_NAME_OF_EXE, sizeof(_NAME_OF_EXE), argv[0]);
+	wdd::file::getNameOfExe(_NAME_OF_EXE, sizeof(_NAME_OF_EXE), argv[0]);
 
 	// get the full path to executable 
-	getExeFullPath(_FULL_PATH_EXE, sizeof(_FULL_PATH_EXE));
+	wdd::file::getExeFullPath(_FULL_PATH_EXE, sizeof(_FULL_PATH_EXE));
 
 	char * compiletime = __TIMESTAMP__;
 	printf("WaggleDanceDetection Version %s - compiled at %s\n\n",
@@ -350,7 +144,7 @@ int main(int nargs, char** argv)
 	}
 
 	GalaxyCameraCapture* camera = new GalaxyCameraCapture();
-	camera->Initialize(gxstring(GLOB_WDD_DANCE_OUTPUT_PATH.c_str()));
+	camera->Initialize(gxstring(wdd::GLOB_DANCE_OUTPUT_PATH.c_str()));
 	camera->Connect();
 
 
@@ -514,21 +308,13 @@ void analyseFrame(WaggleDanceDetector* wdd, cv::Mat* frame_input, WddFrameAnalys
 
 void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux_WDD_SIGNAL_MIN_CLUSTER_SIZE, bool noGui)
 {
-	//opencv_core2413d.lib;opencv_imgproc2413d.lib;opencv_highgui2413d.lib;
 	std::cout<<"************** Run started in test mode **************" << endl;
-	//if(!fileExists(videoFilename))
-	//{
-	//	std::cerr<<"Error! Wrong video path!" << endl;
-	//	exit(-201);
-	//}
-	cout << "let's try to get the videoCapture" << endl;
-	//try {
-
-	//}
-	//catch (exception ex) {
-
-	//}
-	
+	if(!wdd::file::fileExists(videoFilename))
+	{
+		std::cerr<<"Error! Wrong video path!" << endl;
+		exit(-201);
+	}
+	cout << "let's try to get the videoCapture" << endl;	
 	cv::VideoCapture capture(videoFilename);
 	cout << "videocapture received" << endl;
 	
@@ -557,7 +343,7 @@ void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux
 	cout << "width: " << FRAME_WIDTH << " and height: " << FRAME_HEIGHT << " at framerate: " << FRAME_RATE << endl;
 
 	struct CamConf c;
-	c.camId = nextUniqueCamID++;	
+	c.camId = wdd::camera::getNextUniqueCamID();
 	strcpy_s(c.guid_str, "virtual-cam-config");
 	c.arena[0] = cv::Point2i(0,0);
 	c.arena[1] = cv::Point2i(320-1,0);

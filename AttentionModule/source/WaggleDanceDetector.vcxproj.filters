@@ -19,6 +19,9 @@
     <Filter Include="Header Files\camera">
       <UniqueIdentifier>{75252537-7bef-4ef4-9cab-bf17c711f9f1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\helpers">
+      <UniqueIdentifier>{866882cb-8627-42af-8eb0-fd52692074ea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -55,6 +58,9 @@
       <Filter>Header Files\camera</Filter>
     </ClInclude>
     <ClInclude Include="cvblob.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WddLib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -97,6 +103,15 @@
     </ClCompile>
     <ClCompile Include="cvblob.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WddLib_Math.cpp">
+      <Filter>Source Files\helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="WddLib_File.cpp">
+      <Filter>Source Files\helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="WddLib_Camera_Config.cpp">
+      <Filter>Source Files\helpers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

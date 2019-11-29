@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "VideoFrameBuffer.h"
 #include "WaggleDanceOrientator.h"
-
+#include "WddLib.h"
 namespace wdd
 {
 	char vfb_root_path[] = "\\fullframes";
@@ -61,19 +61,14 @@ namespace wdd
 	}
 	void VideoFrameBuffer::saveFullFrame()
 	{
-		// link to help functionin main.cpp
-		extern bool dirExists(const char * dirPath);
-		// link full path from main.cpp
-		extern char _FULL_PATH_EXE[MAX_PATH];
-
 		char BUFF_PATH[MAX_PATH];
 
 		// create path to .
-		strcpy_s(BUFF_PATH, _FULL_PATH_EXE);
+		strcpy_s(BUFF_PATH, wdd::_FULL_PATH_EXE);
 		strcat_s(BUFF_PATH, vfb_root_path);
 
 		// check for path_out folder
-		if(!dirExists(BUFF_PATH))
+		if(!wdd::file::dirExists(BUFF_PATH))
 		{
 			if(!CreateDirectory(BUFF_PATH, NULL))
 			{
@@ -93,7 +88,7 @@ namespace wdd
 		strcat_s(BUFF_PATH, MAX_PATH, buf_camID);
 
 		// check for path_out//id folder
-		if(!dirExists(BUFF_PATH))
+		if(!wdd::file::dirExists(BUFF_PATH))
 		{
 			if(!CreateDirectory(BUFF_PATH, NULL))
 			{

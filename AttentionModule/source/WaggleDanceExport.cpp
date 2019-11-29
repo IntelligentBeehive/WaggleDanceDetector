@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "WaggleDanceExport.h"
 #include "WaggleDanceOrientator.h"
-
+#include "WddLib.h"
 namespace wdd
 {
 	char root_path[] = "\\output";
@@ -89,11 +89,10 @@ namespace wdd
 		// write CSV file
 		//
 		// link full path from main.cpp
-		extern char _FULL_PATH_EXE[MAX_PATH];
 
 		char CSV_FILE[MAX_PATH];
 
-		strcpy_s(CSV_FILE, MAX_PATH, _FULL_PATH_EXE);
+		strcpy_s(CSV_FILE, MAX_PATH, wdd::_FULL_PATH_EXE);
 		strcat_s(CSV_FILE, root_path);
 		strcat_s(CSV_FILE, "\\");
 
@@ -220,11 +219,6 @@ namespace wdd
 
 	void WaggleDanceExport::createGenericFolder(char dir_rel[])
 	{
-		// link to help functionin main.cpp
-		extern bool dirExists(const char * dirPath);
-		// link full path from main.cpp
-		extern char _FULL_PATH_EXE[MAX_PATH];
-
 		char BUFF_PATH[MAX_PATH];
 
 		// create path to .
@@ -234,7 +228,7 @@ namespace wdd
 		strcat_s(BUFF_PATH, dir_rel);
 
 		// check for path_out folder
-		if(!dirExists(BUFF_PATH))
+		if(!wdd::file::dirExists(BUFF_PATH))
 		{
 			if(!CreateDirectory(BUFF_PATH, NULL))
 			{
@@ -247,11 +241,6 @@ namespace wdd
 
 	int WaggleDanceExport::countDirectories(char dir_rel[])
 	{
-		// link to help functionin main.cpp
-		extern bool dirExists(const char * dirPath);
-		// link full path from main.cpp
-		extern char _FULL_PATH_EXE[MAX_PATH];
-
 		char BUFF_PATH[MAX_PATH];
 
 		// create path to .

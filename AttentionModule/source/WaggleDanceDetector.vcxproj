@@ -131,11 +131,11 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
       <Profile>true</Profile>
-      <AdditionalLibraryDirectories>$(OPENCV_DIR)\build\x64\vc14\lib;../../../libraries/galaxycamera/lib/x64;../../../libraries/armadillo-9.800.2/examples/lib_win64;../../../libraries/OpenBLAS-0.3.6-x64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(OPENCV_DIR)\build\x64\vc14\lib;../lib/galaxycamera/lib/x64;../lib/armadillo-9.800.2/examples/lib_win64;../lib/OpenBLAS-0.3.6-x64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opencv_world412.lib;ShLwApi.Lib;libopenblas.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(OPENCV_DIR)\build\include;../../../libraries/OpenBLAS-0.3.6-x64/include;../../../libraries/tclap-1.2.1/include;../../../libraries/armadillo-9.800.2/include;../../../libraries/galaxycamera/inc;../../../libraries/galaxycamera/common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(OPENCV_DIR)\build\include;../lib/OpenBLAS-0.3.6-x64/include;../lib/tclap-1.2.1/include;../lib/armadillo-9.800.2/include;../lib/galaxycamera/inc;../lib/galaxycamera/common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -145,6 +145,7 @@
     <ClInclude Include="cvblob.h" />
     <ClInclude Include="DotDetector.h" />
     <ClInclude Include="DotDetectorLayer.h" />
+    <ClInclude Include="WddLib.h" />
     <ClInclude Include="GalaxyCameraCapture.h" />
     <ClInclude Include="InputVideoParameters.h" />
     <ClInclude Include="stdafx.h" />
@@ -156,10 +157,12 @@
     <ClInclude Include="WaggleDanceOrientator.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="WddLib_Camera_Config.cpp" />
     <ClCompile Include="cvblob.cpp" />
     <ClCompile Include="cvlabel.cpp" />
     <ClCompile Include="DotDetector.cpp" />
     <ClCompile Include="DotDetectorLayer.cpp" />
+    <ClCompile Include="WddLib_File.cpp" />
     <ClCompile Include="GalaxyCameraCapture.cpp" />
     <ClCompile Include="InputVideoParameters.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -172,6 +175,7 @@
     <ClCompile Include="WaggleDanceDetector.cpp" />
     <ClCompile Include="WaggleDanceExport.cpp" />
     <ClCompile Include="WaggleDanceOrientator.cpp" />
+    <ClCompile Include="WddLib_Math.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

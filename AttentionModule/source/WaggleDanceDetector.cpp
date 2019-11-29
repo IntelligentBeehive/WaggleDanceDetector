@@ -6,9 +6,8 @@
 #include "WaggleDanceExport.h"
 
 #include "WaggleDanceDetector.h"
-
-namespace wdd
-{
+#include "WddLib.h"
+namespace wdd{
 	unsigned long long WaggleDanceDetector::WDD_SIGNAL_FRAME_NR;
 	int WaggleDanceDetector::WDD_VERBOSE;
 
@@ -84,20 +83,17 @@ namespace wdd
 	{		
 		if(WDD_WRITE_DANCE_FILE || WDD_WRITE_SIGNAL_FILE)
 		{
-			// link full path from main.cpp
-			extern char _FULL_PATH_EXE[MAX_PATH];
-			extern std::string GLOB_WDD_DANCE_OUTPUT_PATH;
 			char BUFF[MAX_PATH];
 
 			if(WDD_WRITE_DANCE_FILE)
 			{
 				//strcpy_s(BUFF ,MAX_PATH, _FULL_PATH_EXE);
 				//strcat_s(BUFF, MAX_PATH, danceFile_path);
-				fopen_s (&danceFile_ptr, GLOB_WDD_DANCE_OUTPUT_PATH.c_str(), "a+");
+				fopen_s (&danceFile_ptr, wdd::GLOB_DANCE_OUTPUT_PATH.c_str(), "a+");
 			}
 			if(WDD_WRITE_SIGNAL_FILE)
 			{
-				strcpy_s(BUFF ,MAX_PATH, _FULL_PATH_EXE);
+				strcpy_s(BUFF ,MAX_PATH, wdd::_FULL_PATH_EXE);
 				strcat_s(BUFF, MAX_PATH, signalFile_path);
 				fopen_s (&signalFile_ptr, BUFF, "a+");
 			}
@@ -345,12 +341,11 @@ namespace wdd
 
 		if(WDD_VERBOSE)
 		{
-			extern double uvecToDegree(cv::Point2d in);
 			printf("Waggle dance #%d at:\t %.1f %.1f with orient %.1f (uvec: %.1f,%.1f)\n",
 				WDD_DANCE_NUMBER,
 				d_ptr->positions[0].x*pow(2, DotDetectorLayer::FRAME_REDFAC),
 				d_ptr->positions[0].y*pow(2, DotDetectorLayer::FRAME_REDFAC),
-				uvecToDegree(d_ptr->orient_uvec),
+				wdd::math::uvecToDegree(d_ptr->orient_uvec),
 				d_ptr->orient_uvec.x,
 				d_ptr->orient_uvec.y);
 		}
@@ -580,8 +575,6 @@ namespace wdd
 	}
 	void WaggleDanceDetector::_execDetectionWriteDanceFileLine(DANCE * d_ptr)
 	{
-		extern double uvecToDegree(cv::Point2d in);
-
 		int start = d_ptr->DANCE_FRAME_START;
 		int end = d_ptr->DANCE_FRAME_END;
 
@@ -595,7 +588,7 @@ namespace wdd
 				fprintf(danceFile_ptr, "%d %.2f %.2f %.1f\n", start, 
 					it->x*pow(2, DotDetectorLayer::FRAME_REDFAC), 
 					it->y*pow(2, DotDetectorLayer::FRAME_REDFAC),
-					uvecToDegree(d_ptr->orient_uvec));
+					wdd::math::uvecToDegree(d_ptr->orient_uvec));
 				start++;
 				++it;
 			}
