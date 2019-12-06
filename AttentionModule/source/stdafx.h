@@ -1,6 +1,7 @@
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
 
+
 #define TEST_MODE_ON
 
 #define WDD_LAYER2_MAX_POS_DDS 100
@@ -61,6 +62,8 @@
 #include <opencv2/core/cvstd.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui.hpp>
+
+#include <opencv2/videoio.hpp>
 enum RUN_MODE {TEST, LIVE};
 
 struct CamConf {

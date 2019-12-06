@@ -293,17 +293,28 @@ void analyseFrame(WaggleDanceDetector* wdd, cv::Mat* frame_input, WddFrameAnalys
 			Sleep(1000);
 	}
 #ifdef WDD_DDL_DEBUG_FULL
-	if (frame_counter >= WDD_FBUFFER_SIZE - 1)
+	if (conf->frame_counter >= WDD_FBUFFER_SIZE - 1)
 		printf("Frame# %llu\t DD_SIGNALS_NUMBER: %d\n", WaggleDanceDetector::WDD_SIGNAL_FRAME_NR, DotDetectorLayer::DD_SIGNALS_NUMBER);
 
-	if (frame_counter >= WDD_DDL_DEBUG_FULL_MAX_FRAME - 1)
+	if (conf->frame_counter >= WDD_DDL_DEBUG_FULL_MAX_FRAME - 1)
 	{
 		std::cout << "************** WDD_DDL_DEBUG_FULL DONE! **************" << std::endl;
 		printf("WDD_DDL_DEBUG_FULL captured %d frames.\n", WDD_DDL_DEBUG_FULL_MAX_FRAME);
-		capture.release();
+		//capture.release();
 		exit(0);
 	}
 #endif
+}
+
+cv::VideoWriter* openVideoOutputStream(cv::VideoCapture* inputStream, std::string outputVideoName) {
+	cv::Size S = cv::Size((int)inputStream->get(cv::CAP_PROP_FRAME_WIDTH),    //Acquire input size
+		(int)inputStream->get(cv::CAP_PROP_FRAME_HEIGHT));
+	int ex = static_cast<int>(inputStream->get(cv::CAP_PROP_FOURCC));
+
+	cv::VideoWriter outputVideo;
+	outputVideo.open(outputVideoName, ex, inputStream->get(cv::CAP_PROP_FPS), S, true);
+
+	return &outputVideo;
 }
 
 void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux_WDD_SIGNAL_MIN_CLUSTER_SIZE, bool noGui)
@@ -318,15 +329,6 @@ void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux
 	cv::VideoCapture capture(videoFilename);
 	cout << "videocapture received" << endl;
 	
-	/*
-	if(!capture.open(videoFilename))
-	{
-		std::cerr << "Error! Video input stream broken - check openCV install " << endl;
-		"(https://help.ubuntu.com/community/OpenCV)\n";
-		capture.release();
-		exit(-202);
-	}
-	*/
 	cout << "open suceeded" << endl;
 	double DD_MIN_POTENTIAL = aux_DD_MIN_POTENTIAL;
 
@@ -434,21 +436,29 @@ void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux
 	std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
 	std::vector<double> bench_res;
-	//loop_bench_res_sing.reserve(dd_positions.size());
-	//loop_bench_avg.reserve(1000);
+
+	//cv::VideoWriter outputVideo = *openVideoOutputStream(&capture, videoFilename + ".output.avi");
+
+	cv::Size S = cv::Size((int)capture.get(cv::CAP_PROP_FRAME_WIDTH),    //Acquire input size
+		(int)capture.get(cv::CAP_PROP_FRAME_HEIGHT));
+	int ex = static_cast<int>(capture.get(cv::CAP_PROP_FOURCC));
+
+	cv::VideoWriter outputVideo;
+	outputVideo.open(videoFilename + ".output.avi", ex, capture.get(cv::CAP_PROP_FPS), S, true);
 
 	while(capture.read(frame_input))
 	{
+		outputVideo << frame_input;
 		analyseFrame(&wdd, &frame_input, &frameAnalysisConfig);
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
-		//niyquist freq berekenen
+
+		//std::this_thread::sleep_for(std::chrono::milliseconds(500));
 		frameAnalysisConfig.frame_counter++;
 		// benchmark output
 		if ((frameAnalysisConfig.frame_counter % 100) == 0)
 		{
 			std::chrono::duration<double> sec = std::chrono::steady_clock::now() - start;
 
-			cout<<"fps: "<< 100/sec.count() << "("<< cvRound(sec.count()*1000)<<"ms)"<<std::endl;
+			cout<<"fps: " << 100 / sec.count() << "(" << cvRound(sec.count() * 1000) << "ms)" << std::endl;
 
 			bench_res.push_back(100 / sec.count());
 
@@ -456,5 +466,6 @@ void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux
 		}
 	}
 
+	outputVideo.release();
 	capture.release();
 }
