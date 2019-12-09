@@ -9,8 +9,8 @@ namespace wdd {
 	extern char _FULL_PATH_EXE[MAX_PATH];
 	extern std::string GLOB_DANCE_OUTPUT_PATH;
 	namespace file {
-		void getNameOfExe(char * out, std::size_t size, char * argv0);
-		void getExeFullPath(char * out, std::size_t size);
+		void initNameOfExe(char * argv0);
+		void initExeFullPath();
 		bool fileExists(const std::string& file_name);
 		bool dirExists(const char * dirPath);
 	}

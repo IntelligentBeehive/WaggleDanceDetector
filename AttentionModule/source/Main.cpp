@@ -10,7 +10,6 @@
 using namespace wdd;
 using namespace std;
 
-
 struct WddFrameAnalyseConfiguration {
 	WddFrameAnalyseConfiguration(cv::Mat frame_input_monochrome, cv::Mat frame_target, VideoFrameBuffer* videoFrameBuffer, unsigned long long frame_counter, bool isVisual) {
 		this->frame_input_monochrome = frame_input_monochrome;
@@ -18,7 +17,6 @@ struct WddFrameAnalyseConfiguration {
 		this->videoFrameBuffer = videoFrameBuffer;
 		this->frame_counter = frame_counter;
 		this->isVisual = isVisual;
-
 	}
 	cv::Mat frame_input_monochrome;
 	cv::Mat frame_target;
@@ -27,6 +25,7 @@ struct WddFrameAnalyseConfiguration {
 	bool isVisual;
 };
 
+#pragma region constants
 char* version = "1.2.5";
 
 int Cir_radius = 3;
@@ -36,7 +35,27 @@ cv::Scalar Cir_color_som = cv::Scalar(0, 0, 255);
 //make the circle filled with value < 0
 int Cir_thickness = -1;
 
-inline void guidToString(GUID g, char * buf){
+//	Layer 1: DotDetector Configuration
+int DD_FREQ_MIN = 11;
+int DD_FREQ_MAX = 17;
+double DD_FREQ_STEP = 1;
+//	Layer 2: Waggle SIGNAL Configuration
+double WDD_SIGNAL_DD_MAXDISTANCE = 2.3;
+//	Layer 3: Waggle Dance Configuration
+double WDD_DANCE_MAX_POSITION_DISTANCEE = sqrt(4);
+int WDD_DANCE_MAX_FRAME_GAP = 3;
+int	WDD_DANCE_MIN_CONSFRAMES = 20;
+//	Global: video configuration
+int FRAME_RED_FAC = 1;//4 -> 1/16 -> 320 ?= x * 1/16 -> 
+//	Develop: Waggle Dance Configuration
+bool wdd_write_dance_file = true;
+bool wdd_write_signal_file = false;
+int wdd_verbose = 0;
+#pragma endregion
+
+#pragma region helper functions
+void runTestMode(std::string videoFilename, double aux_dd_min_potential, int aux_wdd_signal_min_cluster_size, bool noGui);
+inline void guidToString(GUID g, char* buf) {
 	char _buf[64];
 	sprintf_s(_buf, "[%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x]",
 		g.Data1, g.Data2, g.Data3,
@@ -44,14 +63,10 @@ inline void guidToString(GUID g, char * buf){
 		g.Data4[3], g.Data4[4], g.Data4[5],
 		g.Data4[6], g.Data4[7]);
 
-	strcpy_s(buf,64,_buf);	
+	strcpy_s(buf, 64, _buf);
 }
 
-void runTestMode(std::string videoFilename, double aux_dd_min_potential, int aux_wdd_signal_min_cluster_size, bool noGui);
-
-void getCommandLineValues(int nargs, char** argv,
-	double* dd_min_potential, int* wdd_signal_min_cluster_size, bool* autoStartUp, std::string* videofile, bool* noGui, std::string* dancePath) {
-
+void getCommandLineValues(int nargs, char** argv, double* dd_min_potential, int* wdd_signal_min_cluster_size, bool* autoStartUp, std::string* videofile, bool* noGui, std::string* dancePath) {
 	try
 	{
 		// Define the command line object.
@@ -71,7 +86,7 @@ void getCommandLineValues(int nargs, char** argv,
 
 #if defined(TEST_MODE_ON)
 		// path to test video input file
-		TCLAP::ValueArg<std::string> testVidArg("t", "video", "path to video file", true, "", "string");
+		TCLAP::ValueArg<std::string> testVidArg("t", "video", "path to video file", false, "", "string");
 		cmd.add(testVidArg);
 
 		// path to output of dance detection file
@@ -107,23 +122,20 @@ void getCommandLineValues(int nargs, char** argv,
 			GLOB_DANCE_OUTPUT_PATH = std::string(BUFF);
 		}
 	}
-	catch (TCLAP::ArgException &e)
+	catch (TCLAP::ArgException & e)
 	{
 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
 	}
 }
 
+#pragma endregion
+
 int main(int nargs, char** argv)
-{	
-	// get full name of executable
-	wdd::file::getNameOfExe(_NAME_OF_EXE, sizeof(_NAME_OF_EXE), argv[0]);
-
-	// get the full path to executable 
-	wdd::file::getExeFullPath(_FULL_PATH_EXE, sizeof(_FULL_PATH_EXE));
-
-	char * compiletime = __TIMESTAMP__;
-	printf("WaggleDanceDetection Version %s - compiled at %s\n\n",
-		version, compiletime);
+{
+	wdd::file::initNameOfExe(argv[0]);
+	wdd::file::initExeFullPath();
+	auto compiletime = __TIMESTAMP__;
+	printf("WaggleDanceDetection Version %s - compiled at %s\n\n", version, compiletime);
 
 	// define values potentially set by command line
 	double dd_min_potential;
@@ -133,99 +145,62 @@ int main(int nargs, char** argv)
 	bool noGui;
 	std::string dancePath;
 	getCommandLineValues(nargs, argv, &dd_min_potential, &wdd_signal_min_cluster_size, &autoStartUp, &videofile, &noGui, &dancePath);
-
-	// call in test env
 	cout << "Commandline values set!" << endl;
-	if(videofile.size())
-	{	
-		cout << "videofile is set! let's run in test mode";
+
+	if (videofile.size())
+	{
+		cout << "videofile is supplied! let's run in test mode!";
 		runTestMode(videofile, dd_min_potential, wdd_signal_min_cluster_size, noGui);
-		exit(0);
+		cout << "videoanalysis finshed! press any keys to exit...";
+		getch();
+		return 0;
 	}
 
-	GalaxyCameraCapture* camera = new GalaxyCameraCapture();
+	auto camera = new GalaxyCameraCapture();
 	camera->Initialize(gxstring(wdd::GLOB_DANCE_OUTPUT_PATH.c_str()));
-	camera->Connect();
 
-
-	// if autoStartUp flag, iterate camIdsLaunch and select first configured camId
-	/*if(autoStartUp)
-	{*/
-	if (camera->StartCapture())
-	{
-		CImageDataPointer frame = camera->GetFrame();
-		//frame->
-	}
-	//}
-
-	printf("Starting WaggleDanceDetector");
-
-	int param = -1, key;
-
-	while(key = cv::waitKey(0))
-	{
-		switch(key)
-		{
-			//case 'p':	case 'P':	printf("Selected Parameter: Potential\n");		param = 0;		break;
-			//case 'c':	case 'C':	printf("Selected Parameter: Cluster Number\n");	param = 1;		break;
-			//case '+':	if(pCam)	pCam->IncrementCameraParameter(param);		break;
-			//case '-':	if(pCam)	pCam->DecrementCameraParameter(param);		break;
-		case 'i': default:
-			printf("WaggleDanceDetection Version %s - compiled at %s\n\n",
-				version, compiletime);
-
-			printf("Currently dynamic parameter change is deactivated.\n");
-			/*
-			printf("Use the following keys to change camera parameters:\n"
-			"\t'p' - select Potential parameter\n"
-			"\t'c' - select min cluster number parameter\n"
-			"\t'+' - increment selected parameter\n"
-			"\t'-' - decrement selected parameter\n");
-			*/
+	int retryCount = 0;
+	while (!camera->Connect()) {
+		if (retryCount < 4) {
+			cout << "unable to connect to the camera " << ++retryCount << " times now, retrying in 5 seconds..." << endl;
+			std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+		}
+		else {
+			cout << "unable to connect to the camera, Press any keys to exit...";
+			getch();
+			return 31;
 		}
 	}
+	cout << "connected to the camera!" << endl << endl;
 
-	/*
-	printf("Use the following keys to change camera parameters:\n"
-	"\t'g' - select gain parameter\n"
-	"\t'e' - select exposure parameter\n"
-	"\t'z' - select zoom parameter\n"
-	"\t'r' - select rotation parameter\n"
-	"\t'+' - increment selected parameter\n"
-	"\t'-' - decrement selected parameter\n");
-	// The <ESC> key will exit the program
-	CLEyeCameraCapture *pCam = NULL;
-	*/
+	if (!camera->StartCapture())
+	{
+		cout << "unable to open the camera capture" << endl;
+		cout << "Press any keys to exit...";
+		getch();
+		return 31;
+	}
+	cout << "Capturing started..." << endl;
 
+	try {
+		while (true) {
+			CImageDataPointer frame = camera->GetFrame();
+			//TODO: analyse frame
+		}
+	}
+	catch (std::exception & ex) {
+		cout << "The following error has occured while analysing a frame of the camera: '" << ex.what() << "'";
+	}
+
+	cout << "WaggleDanceDetection Version " << version << " - compiled at " << compiletime << endl;
+	cout << "Press any key to exit...";
+	getch();
 	return 0;
 }
 
-//
-//	Layer 1: DotDetector Configuration
-//
-int DD_FREQ_MIN = 11;
-int DD_FREQ_MAX = 17;
-double DD_FREQ_STEP = 1;
-//	Layer 2: Waggle SIGNAL Configuration
-double WDD_SIGNAL_DD_MAXDISTANCE = 2.3;
-//	Layer 3: Waggle Dance Configuration
-double	WDD_DANCE_MAX_POSITION_DISTANCEE = sqrt(4);
-int		WDD_DANCE_MAX_FRAME_GAP = 3;
-int		WDD_DANCE_MIN_CONSFRAMES = 20;
-//
-//	Global: video configuration
-//
-int FRAME_RED_FAC = 1;//4 -> 1/16 -> 320 ?= x * 1/16 -> 
-//
-//	Develop: Waggle Dance Configuration
-//
-bool wdd_write_dance_file = true;
-bool wdd_write_signal_file = false;
-int wdd_verbose = 0;
-
 void analyseFrame(WaggleDanceDetector* wdd, cv::Mat* frame_input, WddFrameAnalyseConfiguration* conf) {
-	const std::map<std::size_t, cv::Point2d> * WDDSignalId2PointMap = wdd->getWDDSignalId2PointMap();
-	const std::vector<DANCE> * WDDFinishedDances = wdd->getWDDFinishedDancesVec();
+	const std::map<std::size_t, cv::Point2d>* WDDSignalId2PointMap = wdd->getWDDSignalId2PointMap();
+	const std::vector<DANCE>* WDDFinishedDances = wdd->getWDDFinishedDancesVec();
 
 	const std::map<std::size_t, cv::Point2d>  WDDDance2PointMap;
 
@@ -259,14 +234,14 @@ void analyseFrame(WaggleDanceDetector* wdd, cv::Mat* frame_input, WddFrameAnalys
 		if (DotDetectorLayer::DD_SIGNALS_NUMBER > 0)
 		{
 			for (auto it = DotDetectorLayer::DD_SIGNALS_IDs.begin(); it != DotDetectorLayer::DD_SIGNALS_IDs.end(); ++it)
-				cv::circle(*frame_input, DotDetectorLayer::DD_POSITIONS.at(*it)*std::pow(2, FRAME_RED_FAC), 2, Cir_color_som, Cir_thickness);
+				cv::circle(*frame_input, DotDetectorLayer::DD_POSITIONS.at(*it) * std::pow(2, FRAME_RED_FAC), 2, Cir_color_som, Cir_thickness);
 		}
 		//check for WDD Signal
 		if (wdd->isWDDSignal())
 		{
 			for (std::size_t i = 0; i < wdd->getWDDSignalNumber(); i++)
 			{
-				cv::circle(*frame_input, (*WDDSignalId2PointMap).find(i)->second*std::pow(2, FRAME_RED_FAC),
+				cv::circle(*frame_input, (*WDDSignalId2PointMap).find(i)->second * std::pow(2, FRAME_RED_FAC),
 					Cir_radius, Cir_color_yel, Cir_thickness);
 			}
 		}
@@ -308,26 +283,16 @@ void analyseFrame(WaggleDanceDetector* wdd, cv::Mat* frame_input, WddFrameAnalys
 
 void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux_WDD_SIGNAL_MIN_CLUSTER_SIZE, bool noGui)
 {
-	std::cout<<"************** Run started in test mode **************" << endl;
-	if(!wdd::file::fileExists(videoFilename))
+	cout << "************** Run started in test mode **************" << endl;
+	if (!wdd::file::fileExists(videoFilename))
 	{
-		std::cerr<<"Error! Wrong video path!" << endl;
+		std::cerr << "Error! Wrong video path!" << endl;
 		exit(-201);
 	}
-	cout << "let's try to get the videoCapture" << endl;	
+	cout << "let's try to get the videoCapture" << endl;
 	cv::VideoCapture capture(videoFilename);
 	cout << "videocapture received" << endl;
-	
-	/*
-	if(!capture.open(videoFilename))
-	{
-		std::cerr << "Error! Video input stream broken - check openCV install " << endl;
-		"(https://help.ubuntu.com/community/OpenCV)\n";
-		capture.release();
-		exit(-202);
-	}
-	*/
-	cout << "open suceeded" << endl;
+
 	double DD_MIN_POTENTIAL = aux_DD_MIN_POTENTIAL;
 
 	int	WDD_SIGNAL_MIN_CLUSTER_SIZE = aux_WDD_SIGNAL_MIN_CLUSTER_SIZE;
@@ -339,23 +304,23 @@ void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux
 	InputVideoParameters vp(&capture);
 	int FRAME_WIDTH = vp.getFrameWidth();
 	int FRAME_HEIGHT = vp.getFrameHeight();
-	int FRAME_RATE = 25;
+	int FRAME_RATE = 30;
 	cout << "width: " << FRAME_WIDTH << " and height: " << FRAME_HEIGHT << " at framerate: " << FRAME_RATE << endl;
 
 	struct CamConf c;
 	c.camId = wdd::camera::getNextUniqueCamID();
 	strcpy_s(c.guid_str, "virtual-cam-config");
-	c.arena[0] = cv::Point2i(0,0);
-	c.arena[1] = cv::Point2i(320-1,0);
-	c.arena[2] = cv::Point2i(320-1,240-1);
-	c.arena[3] = cv::Point2i(0,240-1);
+	c.arena[0] = cv::Point2i(0, 0);
+	c.arena[1] = cv::Point2i(320 - 1, 0);
+	c.arena[2] = cv::Point2i(320 - 1, 240 - 1);
+	c.arena[3] = cv::Point2i(0, 240 - 1);
 	// prepare videoFrameBuffer
-	VideoFrameBuffer videoFrameBuffer(frame_counter_global, cv::Size(FRAME_WIDTH, FRAME_HEIGHT), cv::Size(20,20), c);
+	VideoFrameBuffer videoFrameBuffer(frame_counter_global, cv::Size(FRAME_WIDTH, FRAME_HEIGHT), cv::Size(20, 20), c);
 
 	cv::Mat frame_input;
 	cv::Mat frame_input_monochrome;
 	cv::Mat frame_target;
-	if(!noGui)
+	if (!noGui)
 		cv::namedWindow("Video");
 
 	/* prepare frame_counter */
@@ -366,12 +331,12 @@ void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux
 		cv::Mat(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
 
 	/* prepare buffer to hold target frame */
-	double resize_factor =  pow(2.0, FRAME_RED_FAC);
+	double resize_factor = pow(2.0, FRAME_RED_FAC);
 
-	int frame_target_width = cvRound(FRAME_WIDTH/resize_factor);
-	int frame_target_height = cvRound(FRAME_HEIGHT/resize_factor);
+	int frame_target_width = cvRound(FRAME_WIDTH / resize_factor);
+	int frame_target_height = cvRound(FRAME_HEIGHT / resize_factor);
 
-	std::cout<<"Printing WaggleDanceDetector frame parameter:"<<std::endl;
+	std::cout << "Printing WaggleDanceDetector frame parameter:" << std::endl;
 	printf("frame_height: %d\n", frame_target_height);
 	printf("frame_width: %d\n", frame_target_width);
 	printf("frame_rate: %d\n", FRAME_RATE);
@@ -390,12 +355,12 @@ void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux
 	ddl_config.push_back(DD_MIN_POTENTIAL);
 
 	std::vector<cv::Point2i> dd_positions;
-	for(int i = 0; i < frame_target_width; i++)
+	for (int i = 0; i < frame_target_width; i++)
 	{
-		for(int j = 0; j < frame_target_height; j++)
+		for (int j = 0; j < frame_target_height; j++)
 		{
 			// x (width), y(height)
-			dd_positions.push_back(cv::Point2i(i,j));
+			dd_positions.push_back(cv::Point2i(i, j));
 		}
 	}
 	printf("Initialize with %d DotDetectors (DD_MIN_POTENTIAL=%.1f).\n", dd_positions.size(), DD_MIN_POTENTIAL);
@@ -424,10 +389,10 @@ void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux
 		wdd_verbose
 	);
 	WddFrameAnalyseConfiguration frameAnalysisConfig(
-		frame_input_monochrome, 
-		frame_target, 
-		&videoFrameBuffer, 
-		frame_counter, 
+		frame_input_monochrome,
+		frame_target,
+		&videoFrameBuffer,
+		frame_counter,
 		!noGui
 	);
 
@@ -437,10 +402,10 @@ void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux
 	//loop_bench_res_sing.reserve(dd_positions.size());
 	//loop_bench_avg.reserve(1000);
 
-	while(capture.read(frame_input))
+	while (capture.read(frame_input))
 	{
 		analyseFrame(&wdd, &frame_input, &frameAnalysisConfig);
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 30));
 		//niyquist freq berekenen
 		frameAnalysisConfig.frame_counter++;
 		// benchmark output
@@ -448,7 +413,7 @@ void runTestMode(std::string videoFilename, double aux_DD_MIN_POTENTIAL, int aux
 		{
 			std::chrono::duration<double> sec = std::chrono::steady_clock::now() - start;
 
-			cout<<"fps: "<< 100/sec.count() << "("<< cvRound(sec.count()*1000)<<"ms)"<<std::endl;
+			cout << "fps: " << 100 / sec.count() << "(" << cvRound(sec.count() * 1000) << "ms)" << std::endl;
 
 			bench_res.push_back(100 / sec.count());
 

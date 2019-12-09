@@ -8,7 +8,7 @@ namespace wdd {
 	std::string GLOB_DANCE_OUTPUT_PATH;
 
 	namespace file {
-		void getNameOfExe(char * out, std::size_t size, char * argv0)
+		void initNameOfExe(char * argv0)
 		{
 			std::string argv0_str(argv0);
 			std::string exeName;
@@ -26,9 +26,9 @@ namespace wdd {
 			if (found == std::string::npos)
 				exeName += ".exe";
 
-			strcpy_s(out, size, exeName.c_str());
+			strcpy_s(_NAME_OF_EXE, sizeof(_NAME_OF_EXE), exeName.c_str());
 		}
-		void getExeFullPath(char * out, std::size_t size)
+		void initExeFullPath()
 		{
 			char BUFF[MAX_PATH];
 			HMODULE hModule = GetModuleHandle(NULL);
@@ -36,7 +36,7 @@ namespace wdd {
 			{
 				GetModuleFileName(hModule, BUFF, sizeof(BUFF) / sizeof(char));
 				// remove '\WaggleDanceDetector.exe' (or any other name exe has)
-				_tcsncpy_s(out, size, BUFF, strlen(BUFF) - (strlen(_NAME_OF_EXE) + 1));
+				_tcsncpy_s(_FULL_PATH_EXE, sizeof(_FULL_PATH_EXE), BUFF, strlen(BUFF) - (strlen(_NAME_OF_EXE) + 1));
 			}
 			else
 			{

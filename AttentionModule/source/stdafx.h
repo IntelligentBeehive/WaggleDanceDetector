@@ -73,9 +73,7 @@ struct CamConf {
 
 struct _MouseInteraction
 {
-	// id der Ecke, die mit der Maus angehovert wurde
 	int cornerHovered;
-	// id der Ecke, die mit der Maus angeklickt wurde
 	int cornerSelected;
 
 	cv::Point lastPosition;
